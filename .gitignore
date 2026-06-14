@@ -1,0 +1,88 @@
+# ========================
+# Java / Gradle
+# ========================
+.gradle/
+build/
+out/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+# ========================
+# IntelliJ IDEA
+# ========================
+.idea/modules.xml
+.idea/jarRepositories.xml
+.idea/libraries/
+*.iws
+*.iml
+*.ipr
+
+# ========================
+# Python (fraud-scoring/)
+# ========================
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+dist/
+.pytest_cache/
+.mypy_cache/
+
+# trained model artifact — large binary, don't commit
+fraud-scoring/model/*.pkl
+fraud-scoring/model/*.json
+
+# IEEE-CIS dataset — too large for git
+fraud-scoring/data/
+
+# ========================
+# Angular (case-dashboard/)
+# ========================
+case-dashboard/node_modules/
+case-dashboard/dist/
+case-dashboard/.angular/
+
+# ========================
+# Docker
+# ========================
+postgres_data/
+
+# ========================
+# Environment / Secrets
+# ========================
+.env
+.env.local
+.env.*.local
+application-local.properties
+application-local.yml
+
+# ========================
+# Eclipse / NetBeans / VS Code
+# ========================
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+.vscode/
+
+# ========================
+# macOS
+# ========================
+.DS_Store
