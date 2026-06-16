@@ -35,11 +35,11 @@ dist/
 .mypy_cache/
 
 # trained model artifact — large binary, don't commit
-fraud-scoring/model/*.pkl
-fraud-scoring/model/*.json
+services/fraud-scoring/model/*.pkl
+services/fraud-scoring/model/*.json
 
 # IEEE-CIS dataset — too large for git
-fraud-scoring/data/
+services/fraud-scoring/data/
 
 # ========================
 # Angular (case-dashboard/)
