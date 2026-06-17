@@ -1,4 +1,4 @@
-package com.fraudpipeline.payment.api;
+package com.fraudpipeline.payment.controller;
 
 import com.fraudpipeline.payment.service.PaymentService;
 import com.fraudpipeline.payment.service.PaymentService.PaymentRequest;

@@ -1,0 +1,91 @@
+.case-detail {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.back {
+  display: inline-block;
+  color: #0066cc;
+  text-decoration: none;
+  margin-bottom: 20px;
+  font-size: 14px;
+  &:hover { text-decoration: underline; }
+}
+
+.card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  padding: 24px;
+  margin-bottom: 20px;
+
+  h3 { font-size: 16px; font-weight: 600; color: #1a1a2e; margin: 0 0 16px; }
+}
+
+.header-card {
+  .header-row { display: flex; justify-content: space-between; align-items: flex-start; }
+  h2 { font-size: 22px; font-weight: 600; margin: 0 0 4px; }
+  .case-id { font-size: 12px; color: #6c757d; font-family: monospace; }
+}
+
+.badge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  &.pending  { background: #fff3cd; color: #856404; }
+  &.approved { background: #d1e7dd; color: #0a3622; }
+  &.blocked  { background: #f8d7da; color: #842029; }
+}
+
+.detail-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+
+.detail-item {
+  label { display: block; font-size: 12px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  span { font-size: 15px; font-weight: 500; color: #1a1a2e; }
+  .mono { font-family: monospace; font-size: 13px; }
+}
+
+.chart-subtitle { font-size: 13px; color: #6c757d; margin: -8px 0 16px; }
+
+.risk-high   { color: #dc3545; }
+.risk-medium { color: #fd7e14; }
+.risk-low    { color: #28a745; }
+
+.form-group {
+  margin-bottom: 16px;
+  label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: #495057; }
+  input, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 14px;
+    box-sizing: border-box;
+    &:focus { outline: none; border-color: #0066cc; }
+  }
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+  button {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+  .btn-approve { background: #28a745; color: white; }
+  .btn-block   { background: #dc3545; color: white; }
+}
+
+.decided-card p { margin: 8px 0; font-size: 14px; }
+.loading, .empty { text-align: center; padding: 48px; color: #6c757d; }
+.error   { color: #dc3545; padding: 16px; background: #fff5f5; border-radius: 4px; margin-bottom: 16px; }
+.success { color: #0a3622; padding: 16px; background: #d1e7dd; border-radius: 4px; margin-bottom: 16px; }
