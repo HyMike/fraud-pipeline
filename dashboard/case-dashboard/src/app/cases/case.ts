@@ -8,7 +8,7 @@ import { Case, CasePage, DecisionRequest } from './models/case.model';
 })
 export class CaseService {
 
-  private readonly apiUrl = 'http://localhost:8080/api/cases';
+  private readonly apiUrl = '/api/cases';
 
   constructor(private http: HttpClient) {}
 
