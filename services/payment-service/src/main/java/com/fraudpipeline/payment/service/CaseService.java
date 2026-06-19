@@ -4,6 +4,8 @@ import com.fraudpipeline.payment.entity.Case;
 import com.fraudpipeline.payment.entity.Payment;
 import com.fraudpipeline.payment.repository.CaseRepository;
 import com.fraudpipeline.payment.repository.PaymentRepository;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -20,6 +22,7 @@ public class CaseService {
     private final CaseRepository caseRepository;
     private final PaymentRepository paymentRepository;
     private final LedgerService ledgerService;
+    private final WebhookService webhookService;
 
     public Page<Case> getCases(Case.Status status, Pageable pageable) {
         if (status != null) {
@@ -58,14 +61,26 @@ public class CaseService {
         fraudCase.setDecisionAt(OffsetDateTime.now());
 
         paymentRepository.save(payment);
-        return caseRepository.save(fraudCase);
+        Case saved = caseRepository.save(fraudCase);
+
+        // Fire webhook asynchronously after decision
+        String callbackUrl = payment.getMerchant().getCallbackUrl();
+        if (callbackUrl != null) {
+            webhookService.fire(callbackUrl, payment.getId().toString(), saved.getStatus().name());
+        }
+
+        return saved;
     }
 
     public enum Decision { APPROVE, BLOCK }
 
     public record DecisionRequest(
+            @NotNull(message = "Decision is required")
             Decision decision,
+
+            @NotBlank(message = "Analyst ID is required")
             String analystId,
+
             String notes
     ) {}
 }
