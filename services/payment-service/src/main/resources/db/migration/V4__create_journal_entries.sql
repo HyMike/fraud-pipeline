@@ -4,6 +4,6 @@ CREATE TABLE journal_entries (
   account_id UUID NOT NULL REFERENCES accounts(id),
   direction  TEXT NOT NULL CHECK (direction IN ('DEBIT','CREDIT')),
   amount     NUMERIC(18,2) NOT NULL,
-  currency   CHAR(3) NOT NULL,
+  currency   VARCHAR(3) NOT NULL,
   created_at TIMESTAMPTZ DEFAULT now()
 );

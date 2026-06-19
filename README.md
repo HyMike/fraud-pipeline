@@ -18,7 +18,8 @@ Client
   ├─► Fraud Scoring      (XGBoost score 0–1 + SHAP explanation)
   │
   ├─ score < 0.3  →  PostgreSQL (journal entry) + Kafka + Webhook
-  └─ score ≥ 0.5  →  PostgreSQL (case queue) + Kafka
+  ├─ score 0.3–0.9 →  PostgreSQL (case queue) + Kafka
+  └─ score ≥ 0.9  →  auto-blocked + Webhook
 
 [Case Management API] ←── analyst reviews flagged payments
 [Angular Dashboard]   ←── SHAP bar chart + Approve / Block
@@ -62,50 +63,148 @@ fraud-pipeline/
 ## Getting Started
 
 ### Prerequisites
-- Docker Desktop
-- Java 17+
-- Python 3.11+ (for fraud scoring service)
-- Node 18+ / Angular CLI (for dashboard)
 
-### Run the database
+- Docker Desktop (running)
+
+That's it — everything else runs inside containers.
+
+### Start the full system
 
 ```bash
-docker compose -f infra/docker-compose.yml up -d postgres
+docker compose -f infra/docker-compose.yml up --build
 ```
 
-### Run the Payment Service
+This starts all 7 containers in order: PostgreSQL → Redis → Zookeeper → Kafka → Fraud Scoring → Payment Service → Case Dashboard.
+
+First run takes a few minutes to pull and build images. Subsequent runs are faster.
+
+### Access the application
+
+| Service | URL |
+|---|---|
+| Case Dashboard (UI) | http://localhost:4200 |
+| Payment Service API | http://localhost:8080 |
+| Fraud Scoring API docs | http://localhost:8001/docs |
+
+### Stop the system
 
 ```bash
-cd services/payment-service
-./gradlew bootRun
+# Stop containers, keep database
+docker compose -f infra/docker-compose.yml down
+
+# Stop containers and wipe the database
+docker compose -f infra/docker-compose.yml down -v
 ```
 
-Flyway migrations run automatically on startup — all tables are created in PostgreSQL.
+---
 
-### Verify
+## Walkthrough
+
+### 1. Register a merchant
+
+Every payment requires a merchant API key. Register one first:
 
 ```bash
-# Submit a test payment
-curl -X POST http://localhost:8080/api/payments \
-  -H "Idempotency-Key: test-001" \
+curl -X POST http://localhost:8080/api/merchants \
   -H "Content-Type: application/json" \
-  -d '{"amount": 250.00, "currency": "USD", "merchantId": "m-123"}'
+  -d '{"name": "Test Store", "callbackUrl": "https://webhook.site/test"}'
+```
 
-# View flagged cases
+Response:
+```json
+{
+  "id": "abc-123-...",
+  "name": "Test Store",
+  "apiKey": "sk_abc123..."
+}
+```
+
+Save the `apiKey` — you'll need it for every payment request.
+
+### 2. Submit a low-risk payment (auto-settles)
+
+```bash
+curl -X POST http://localhost:8080/api/payments \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Idempotency-Key: order-001" \
+  -d '{"amount": 25.00, "currency": "USD"}'
+```
+
+Expected: `"status": "SETTLED"` — written to the ledger immediately, webhook fired to the merchant.
+
+### 3. Submit a high-risk payment (flagged for review)
+
+```bash
+curl -X POST http://localhost:8080/api/payments \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Idempotency-Key: order-002" \
+  -d '{"amount": 99999.99, "currency": "USD"}'
+```
+
+Expected: `"status": "FLAGGED"` — creates a case visible in the dashboard at http://localhost:4200.
+
+### 4. Review the case in the dashboard
+
+Open http://localhost:4200 to see the flagged case. Click into it to see:
+- Transaction amount and fraud score
+- SHAP bar chart explaining which features drove the score
+- Approve / Block buttons
+
+### 5. Check cases via API
+
+```bash
 curl http://localhost:8080/api/cases
 ```
 
+### 6. Make a decision via API
+
+```bash
+curl -X POST http://localhost:8080/api/cases/{caseId}/decision \
+  -H "Content-Type: application/json" \
+  -d '{"decision": "APPROVE", "analystId": "analyst-1", "notes": "Verified with customer"}'
+```
+
+An `APPROVE` writes the journal entry to the ledger and fires a webhook to the merchant. A `BLOCK` marks the payment rejected.
+
+---
+
+## Per-Merchant Risk Configuration
+
+Each merchant can configure their own fraud thresholds:
+
+| Threshold | Default | Meaning |
+|---|---|---|
+| `autoApproveBelow` | 0.30 | Score under this → auto-settle |
+| `reviewAbove` | 0.50 | Score over this → flag for review |
+| `autoBlockAbove` | 0.90 | Score over this → auto-block |
+
+```bash
+# View current thresholds
+curl http://localhost:8080/api/merchants/{merchantId}/risk-config \
+  -H "X-API-Key: YOUR_API_KEY"
+
+# Update thresholds
+curl -X PUT http://localhost:8080/api/merchants/{merchantId}/risk-config \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -d '{"autoApproveBelow": 0.20, "reviewAbove": 0.40, "autoBlockAbove": 0.85}'
+```
+
+---
+
 ## Build Order
 
-The project is built in 8 phases. See [docs/BUILD_ORDER.md](./docs/BUILD_ORDER.md) for the full guide.
+The project was built in 8 phases. See [docs/BUILD_ORDER.md](./docs/BUILD_ORDER.md) for the full guide.
 
 | Phase | What | Status |
 |---|---|---|
 | 1 | PostgreSQL schema + Flyway migrations | ✓ Done |
-| 2 | Fraud Scoring Service (Python/XGBoost) | |
-| 3 | Payment Service core (Spring Boot) | |
-| 4 | Case Management API | |
-| 5 | Angular Dashboard | |
-| 6 | Docker Compose (all services) | |
-| 7 | Webhooks | |
-| 8 | Per-merchant risk configuration | |
+| 2 | Fraud Scoring Service (Python/XGBoost) | ✓ Done |
+| 3 | Payment Service core (Spring Boot) | ✓ Done |
+| 4 | Case Management API | ✓ Done |
+| 5 | Angular Dashboard | ✓ Done |
+| 6 | Docker Compose (all services) | ✓ Done |
+| 7 | Webhooks | ✓ Done |
+| 8 | Per-merchant risk configuration | ✓ Done |
