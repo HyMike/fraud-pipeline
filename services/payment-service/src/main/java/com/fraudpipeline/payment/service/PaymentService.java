@@ -26,13 +26,14 @@ public class PaymentService {
     private final IdempotencyService idempotencyService;
     private final FraudScoringClient fraudScoringClient;
     private final LedgerService ledgerService;
+    private final WebhookService webhookService;
     private final PaymentEventProducer eventProducer;
     private final ObjectMapper objectMapper;
 
     @Transactional
     public PaymentResult process(PaymentRequest request) throws Exception {
         Merchant merchant = merchantRepository.findByApiKey(request.apiKey())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid API key"));
+                .orElseThrow(() -> new SecurityException("Invalid API key"));
 
         // 1. Idempotency check
         Optional<String> cached = idempotencyService.getCachedResponse(
@@ -41,7 +42,7 @@ public class PaymentService {
             return objectMapper.readValue(cached.get(), PaymentResult.class);
         }
 
-        // 2. Create payment record using builder
+        // 2. Create payment record
         Payment payment = Payment.builder()
                 .merchant(merchant)
                 .amount(request.amount())
@@ -59,13 +60,15 @@ public class PaymentService {
         payment.setFraudScore(BigDecimal.valueOf(scoreResponse.score()));
         payment.setStatus(Payment.Status.FRAUD_SCORED);
 
-        // 4. Get merchant thresholds (fall back to defaults if not configured)
+        // 4. Get merchant thresholds
         MerchantRiskConfig config = merchant.getRiskConfig();
         double approveBelow = config != null ? config.getAutoApproveBelow().doubleValue() : 0.30;
         double blockAbove   = config != null ? config.getAutoBlockAbove().doubleValue()   : 0.90;
 
         // 5. Route based on score
         PaymentResult result;
+        String callbackUrl = merchant.getCallbackUrl();
+
         if (scoreResponse.score() < approveBelow) {
             payment.setStatus(Payment.Status.SETTLED);
             paymentRepository.save(payment);
@@ -73,11 +76,17 @@ public class PaymentService {
             result = new PaymentResult(payment.getId(), "SETTLED", scoreResponse.score(), null);
             eventProducer.publishSettled(payment.getId().toString(),
                     objectMapper.writeValueAsString(result));
+            if (callbackUrl != null) {
+                webhookService.fire(callbackUrl, payment.getId().toString(), "SETTLED");
+            }
 
         } else if (scoreResponse.score() >= blockAbove) {
             payment.setStatus(Payment.Status.BLOCKED);
             paymentRepository.save(payment);
             result = new PaymentResult(payment.getId(), "BLOCKED", scoreResponse.score(), null);
+            if (callbackUrl != null) {
+                webhookService.fire(callbackUrl, payment.getId().toString(), "BLOCKED");
+            }
 
         } else {
             payment.setStatus(Payment.Status.FLAGGED);
@@ -96,7 +105,7 @@ public class PaymentService {
                     objectMapper.writeValueAsString(result));
         }
 
-        // 6. Cache the response for idempotency
+        // 6. Cache for idempotency
         idempotencyService.cacheResponse(merchant.getId().toString(), request.idempotencyKey(),
                 objectMapper.writeValueAsString(result));
 
