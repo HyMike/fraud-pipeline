@@ -3,6 +3,8 @@ package com.fraudpipeline.payment.controller;
 import com.fraudpipeline.payment.entity.Merchant;
 import com.fraudpipeline.payment.entity.MerchantRiskConfig;
 import com.fraudpipeline.payment.repository.MerchantRepository;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,7 +20,7 @@ public class MerchantController {
     private final MerchantRepository merchantRepository;
 
     @PostMapping
-    public ResponseEntity<Merchant> register(@RequestBody RegisterRequest body) {
+    public ResponseEntity<Merchant> register(@Valid @RequestBody RegisterRequest body) {
         Merchant merchant = Merchant.builder()
                 .name(body.name())
                 .apiKey(body.apiKey())
@@ -43,5 +45,13 @@ public class MerchantController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    public record RegisterRequest(String name, String apiKey, String callbackUrl) {}
+    public record RegisterRequest(
+            @NotBlank(message = "Name is required")
+            String name,
+
+            @NotBlank(message = "API key is required")
+            String apiKey,
+
+            String callbackUrl
+    ) {}
 }
