@@ -2,54 +2,66 @@
   <div class="header">
     <h1>Fraud Review Queue</h1>
     <div class="filters">
-      <button
-        *ngFor="let s of statusOptions"
-        [class.active]="selectedStatus === s"
-        (click)="onStatusChange(s)">
-        {{ s }}
-      </button>
+      @for (s of statusOptions; track s) {
+        <button
+          [class.active]="selectedStatus() === s"
+          (click)="onStatusChange(s)">
+          {{ s }}
+        </button>
+      }
     </div>
   </div>
 
-  <div *ngIf="loading" class="loading">Loading cases...</div>
-  <div *ngIf="error" class="error">{{ error }}</div>
+  @if (loading()) {
+    <div class="loading">Loading cases...</div>
+  }
 
-  <table *ngIf="casePage && !loading">
-    <thead>
-      <tr>
-        <th>Created</th>
-        <th>Amount</th>
-        <th>Currency</th>
-        <th>Fraud Score</th>
-        <th>Status</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr *ngFor="let case of casePage.content">
-        <td>{{ case.createdAt | date:'short' }}</td>
-        <td>{{ case.payment.amount | number:'1.2-2' }}</td>
-        <td>{{ case.payment.currency }}</td>
-        <td>
-          <span [class]="getRiskClass(case.fraudScore)">
-            {{ case.fraudScore | number:'1.2-2' }}
-          </span>
-        </td>
-        <td>{{ case.status }}</td>
-        <td>
-          <a [routerLink]="['/cases', case.id]">Review</a>
-        </td>
-      </tr>
-    </tbody>
-  </table>
+  @if (error()) {
+    <div class="error">{{ error() }}</div>
+  }
 
-  <div class="pagination" *ngIf="casePage && casePage.totalPages > 1">
-    <button (click)="goToPage(currentPage - 1)" [disabled]="casePage.first">Previous</button>
-    <span>Page {{ currentPage + 1 }} of {{ casePage.totalPages }}</span>
-    <button (click)="goToPage(currentPage + 1)" [disabled]="casePage.last">Next</button>
-  </div>
+  @if (casePage() && !loading()) {
+    <table>
+      <thead>
+        <tr>
+          <th>Created</th>
+          <th>Amount</th>
+          <th>Currency</th>
+          <th>Fraud Score</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (fraudCase of casePage()!.content; track fraudCase.id) {
+          <tr>
+            <td>{{ fraudCase.createdAt | date:'short' }}</td>
+            <td>{{ fraudCase.payment.amount | number:'1.2-2' }}</td>
+            <td>{{ fraudCase.payment.currency }}</td>
+            <td>
+              <span [class]="getRiskClass(fraudCase.fraudScore)">
+                {{ fraudCase.fraudScore | number:'1.2-2' }}
+              </span>
+            </td>
+            <td>{{ fraudCase.status }}</td>
+            <td>
+              <a [routerLink]="['/cases', fraudCase.id]">Review</a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
 
-  <div *ngIf="casePage && casePage.totalElements === 0" class="empty">
-    No {{ selectedStatus.toLowerCase() }} cases found.
-  </div>
+    @if (casePage()!.totalElements === 0) {
+      <div class="empty">No {{ selectedStatus().toLowerCase() }} cases found.</div>
+    }
+  }
+
+  @if (casePage() && casePage()!.totalPages > 1) {
+    <div class="pagination">
+      <button (click)="goToPage(currentPage() - 1)" [disabled]="casePage()!.first">Previous</button>
+      <span>Page {{ currentPage() + 1 }} of {{ casePage()!.totalPages }}</span>
+      <button (click)="goToPage(currentPage() + 1)" [disabled]="casePage()!.last">Next</button>
+    </div>
+  }
 </div>

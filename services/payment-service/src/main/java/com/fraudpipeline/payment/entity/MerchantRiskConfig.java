@@ -1,5 +1,6 @@
 package com.fraudpipeline.payment.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
@@ -19,6 +20,7 @@ public class MerchantRiskConfig {
     @Column(name = "merchant_id")
     private UUID merchantId;
 
+    @JsonIgnore
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId
     @JoinColumn(name = "merchant_id")

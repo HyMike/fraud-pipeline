@@ -1,8 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { CaseService } from '../case';
-import { Case, CasePage } from '../models/case.model';
+import { CasePage } from '../models/case.model';
 
 @Component({
   selector: 'app-case-list',
@@ -12,11 +12,11 @@ import { Case, CasePage } from '../models/case.model';
 })
 export class CaseList implements OnInit {
 
-  casePage: CasePage | null = null;
-  selectedStatus: string = 'PENDING';
-  currentPage: number = 0;
-  loading: boolean = false;
-  error: string | null = null;
+  casePage = signal<CasePage | null>(null);
+  selectedStatus = signal<string>('PENDING');
+  currentPage = signal<number>(0);
+  loading = signal<boolean>(false);
+  error = signal<string | null>(null);
 
   statusOptions = ['PENDING', 'APPROVED', 'BLOCKED'];
 
@@ -27,29 +27,29 @@ export class CaseList implements OnInit {
   }
 
   loadCases(): void {
-    this.loading = true;
-    this.error = null;
+    this.loading.set(true);
+    this.error.set(null);
 
-    this.caseService.getCases(this.selectedStatus, this.currentPage).subscribe({
+    this.caseService.getCases(this.selectedStatus(), this.currentPage()).subscribe({
       next: (page) => {
-        this.casePage = page;
-        this.loading = false;
+        this.casePage.set(page);
+        this.loading.set(false);
       },
       error: () => {
-        this.error = 'Failed to load cases. Is the Payment Service running?';
-        this.loading = false;
+        this.error.set('Failed to load cases. Is the Payment Service running?');
+        this.loading.set(false);
       }
     });
   }
 
   onStatusChange(status: string): void {
-    this.selectedStatus = status;
-    this.currentPage = 0;
+    this.selectedStatus.set(status);
+    this.currentPage.set(0);
     this.loadCases();
   }
 
   goToPage(page: number): void {
-    this.currentPage = page;
+    this.currentPage.set(page);
     this.loadCases();
   }
 
